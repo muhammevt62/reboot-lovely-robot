@@ -26,10 +26,30 @@ jobs:
         working-directory: .
         run: find sources -name gradlew -type f -exec chmod +x {} \;
 
-      - name: Build local dependencies
+      - name: Build HZLib NeoForge
+        working-directory: sources/common/hzlib-1.21.1
         env:
           TARGET_LOADER: NeoForge
-        run: ./gradlew refreshDependencies --stacktrace
+        run: ./gradlew build --stacktrace
+
+      - name: Stage HZLib for LovelyLib
+        working-directory: .
+        run: |
+          mkdir -p sources/common/lovelylib-1.21.1/libs
+          cp sources/common/hzlib-1.21.1/NeoForge/build/libs/hzlib-neoforge-26.1.2-1.0.0.jar sources/common/lovelylib-1.21.1/libs/
+
+      - name: Build LovelyLib NeoForge
+        working-directory: sources/common/lovelylib-1.21.1
+        env:
+          TARGET_LOADER: NeoForge
+        run: ./gradlew build --stacktrace
+
+      - name: Stage libraries for Lovely Reboot
+        working-directory: .
+        run: |
+          mkdir -p sources/reboot/rlovelyr-1.21.1/libs
+          cp sources/common/hzlib-1.21.1/NeoForge/build/libs/hzlib-neoforge-26.1.2-1.0.0.jar sources/reboot/rlovelyr-1.21.1/libs/
+          cp sources/common/lovelylib-1.21.1/NeoForge/build/libs/lovelylib-neoforge-26.1.2-1.0.0.jar sources/reboot/rlovelyr-1.21.1/libs/
 
       - name: Build NeoForge baseline
         env:
