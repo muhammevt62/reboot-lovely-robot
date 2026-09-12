@@ -22,8 +22,9 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Make Gradle executable
-        run: chmod +x gradlew
+      - name: Make Gradle wrappers executable
+  working-directory: .
+  run: find sources -name gradlew -type f -exec chmod +x {} \;
 
       - name: Refresh local dependencies
         env:
