@@ -1,12 +1,12 @@
 plugins {
     id 'fabric-loom' version '1.7-SNAPSHOT' apply false
-    id 'net.neoforged.moddev' version '2.0.73' apply false
+    id 'net.neoforged.moddev' version '2.0.146' apply false
 }
 
 subprojects {
     apply plugin: 'java'
     
-    java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+    java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
     jar {
         manifest {
@@ -28,6 +28,9 @@ subprojects {
         maven {
             name = 'GeckoLib'
             url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+            content {
+                includeGroupAndSubgroups('com.geckolib')
+            }
         }
         
         maven {
@@ -37,12 +40,10 @@ subprojects {
             }
         }
         
-        // Local library dependencies — always resolved from root project
         flatDir {
             dirs rootProject.file('libs')
         }
         
-        // Development: LovelyLib build output (fallback — per-loader, rooted at project root)
         if (rootProject.hasProperty('lovelylib_project_path')) {
             def lovelylibBase = rootProject.file(rootProject.lovelylib_project_path)
             flatDir {
@@ -53,7 +54,6 @@ subprojects {
             }
         }
 
-        // Development: HZLib build output (fallback — per-loader, rooted at project root)
         if (rootProject.hasProperty('hzlib_project_path')) {
             def hzlibBase = rootProject.file(rootProject.hzlib_project_path)
             flatDir {
@@ -67,7 +67,7 @@ subprojects {
 
     tasks.withType(JavaCompile).configureEach {
         it.options.encoding = 'UTF-8'
-        it.options.release = 21
+        it.options.release = 25
     }
 
     tasks.withType(GenerateModuleMetadata) {
@@ -75,12 +75,11 @@ subprojects {
     }
     
     java {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 }
 
-// Task to refresh dependencies from LovelyLib and HZLib
 task refreshDependencies {
     description = 'Copy latest LovelyLib and HZLib JARs from build output to local libs directory'
     group = 'dependencies'
@@ -89,7 +88,6 @@ task refreshDependencies {
         def libsDir = file('libs')
         libsDir.mkdirs()
 
-        // ── LovelyLib ──────────────────────────────────────────────────────────
         if (project.hasProperty('lovelylib_project_path')) {
             def lovelyLibProject = file(lovelylib_project_path)
             if (!lovelyLibProject.exists()) {
@@ -102,7 +100,6 @@ task refreshDependencies {
                 commandLine './gradlew', 'build'
             }
 
-            // LovelyLib produces per-loader JARs under each loader's build/libs
             ['Common', 'Fabric', 'Forge', 'NeoForge'].each { loader ->
                 def buildDir = file("${lovelylib_project_path}/${loader}/build/libs")
                 if (buildDir.exists()) {
@@ -119,7 +116,6 @@ task refreshDependencies {
             println "Copied LovelyLib JARs to libs/"
         }
 
-        // ── HZLib ──────────────────────────────────────────────────────────────
         if (project.hasProperty('hzlib_project_path')) {
             def hzLibProject = file(hzlib_project_path)
             if (!hzLibProject.exists()) {
@@ -132,7 +128,6 @@ task refreshDependencies {
                 commandLine './gradlew', 'build'
             }
 
-            // HZLib produces per-loader JARs under each loader's build/libs
             ['Common', 'Fabric', 'Forge', 'NeoForge'].each { loader ->
                 def buildDir = file("${hzlib_project_path}/${loader}/build/libs")
                 if (buildDir.exists()) {
@@ -151,21 +146,18 @@ task refreshDependencies {
     }
 }
 
-// Task to build with refreshed dependencies
 task buildWithDeps {
     description = 'Refresh dependencies and build the project'
     group = 'build'
     dependsOn 'refreshDependencies', 'build'
 }
 
-// Task to run client with refreshed dependencies
 task runClientWithDeps {
     description = 'Refresh dependencies and run client'
     group = 'application'
     dependsOn 'refreshDependencies'
     
     doLast {
-        // Run the appropriate client task based on available subprojects
         if (project.findProject(':Fabric')) {
             project(':Fabric').tasks.runClient.execute()
         } else if (project.findProject(':Forge')) {
