@@ -23,8 +23,8 @@ jobs:
           cache: gradle
 
       - name: Make Gradle wrappers executable
-  working-directory: .
-  run: find sources -name gradlew -type f -exec chmod +x {} \;
+        working-directory: .
+        run: find sources -name gradlew -type f -exec chmod +x {} \;
 
       - name: Refresh local dependencies
         env:
