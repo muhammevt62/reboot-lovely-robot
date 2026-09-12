@@ -80,6 +80,24 @@ subprojects {
     }
 }
 
+def runGradleBuild(File projectDir) {
+    def gradlew = new File(projectDir, 'gradlew')
+    if (!gradlew.exists()) {
+        throw new GradleException("Gradle wrapper not found at: ${gradlew}")
+    }
+
+    def process = new ProcessBuilder(gradlew.absolutePath, 'build')
+            .directory(projectDir)
+            .redirectErrorStream(true)
+            .inheritIO()
+            .start()
+
+    def exitCode = process.waitFor()
+    if (exitCode != 0) {
+        throw new GradleException("Gradle build failed in ${projectDir} with exit code ${exitCode}")
+    }
+}
+
 task refreshDependencies {
     description = 'Copy latest LovelyLib and HZLib JARs from build output to local libs directory'
     group = 'dependencies'
@@ -95,10 +113,7 @@ task refreshDependencies {
             }
 
             println "Building LovelyLib..."
-            project.exec {
-                workingDir lovelyLibProject
-                commandLine './gradlew', 'build'
-            }
+            runGradleBuild(lovelyLibProject)
 
             ['Common', 'Fabric', 'Forge', 'NeoForge'].each { loader ->
                 def buildDir = file("${lovelylib_project_path}/${loader}/build/libs")
@@ -123,10 +138,7 @@ task refreshDependencies {
             }
 
             println "Building HZLib..."
-            project.exec {
-                workingDir hzLibProject
-                commandLine './gradlew', 'build'
-            }
+            runGradleBuild(hzLibProject)
 
             ['Common', 'Fabric', 'Forge', 'NeoForge'].each { loader ->
                 def buildDir = file("${hzlib_project_path}/${loader}/build/libs")
