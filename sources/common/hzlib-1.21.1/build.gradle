@@ -1,12 +1,11 @@
 plugins {
     id 'fabric-loom' version '1.7-SNAPSHOT' apply false
-    id 'net.neoforged.moddev' version '2.0.73' apply false
+    id 'net.neoforged.moddev' version '2.0.146' apply false
 }
 
 subprojects {
     apply plugin: 'java'
-    
-    java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+    java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
     jar {
         manifest {
@@ -24,31 +23,26 @@ subprojects {
 
     repositories {
         mavenCentral()
-        
         maven {
             name = 'GeckoLib'
             url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+            content { includeGroupAndSubgroups('com.geckolib') }
         }
-        
         maven {
             url "https://cursemaven.com"
-            content {
-                includeGroup "curse.maven"
-            }
+            content { includeGroup "curse.maven" }
         }
     }
 
     tasks.withType(JavaCompile).configureEach {
         it.options.encoding = 'UTF-8'
-        it.options.release = 21
+        it.options.release = 25
     }
 
-    tasks.withType(GenerateModuleMetadata) {
-        enabled = false
-    }
-    
+    tasks.withType(GenerateModuleMetadata) { enabled = false }
+
     java {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 }
