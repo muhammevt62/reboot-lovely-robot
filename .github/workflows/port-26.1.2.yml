@@ -21,10 +21,12 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Make Gradle executable
-        run: chmod +x gradlew
+      - name: Refresh local dependencies
+  env:
+    TARGET_LOADER: NeoForge
+  run: ./gradlew refreshDependencies --stacktrace
 
-      - name: Build NeoForge baseline
-        env:
-          TARGET_LOADER: NeoForge
-        run: ./gradlew build --stacktrace
+- name: Build NeoForge baseline
+  env:
+    TARGET_LOADER: NeoForge
+  run: ./gradlew build --stacktrace
