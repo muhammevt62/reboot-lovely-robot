@@ -60,9 +60,10 @@ plugins {
 }
 
 def includeModloader(String name) {
-    // If building with Github Actions, only include loader we want!
-    String targetLoader = Boolean.getBoolean("CI") ? System.getenv("TARGET_LOADER") : null
-    if(targetLoader == null || targetLoader == name) {
+    // In CI, TARGET_LOADER selects exactly one loader project.
+    // Locally, include all loader projects as before.
+    String targetLoader = System.getenv("TARGET_LOADER")
+    if(targetLoader == null || targetLoader.isBlank() || targetLoader == name) {
         include(name)
     }
 }
