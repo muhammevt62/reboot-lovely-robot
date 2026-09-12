@@ -26,6 +26,19 @@ jobs:
         working-directory: .
         run: find sources -name gradlew -type f -exec chmod +x {} \;
 
+      - name: Patch 26.1.2 vanilla API names
+        working-directory: .
+        run: |
+          find sources/common/hzlib-1.21.1 sources/common/lovelylib-1.21.1 sources/reboot/rlovelyr-1.21.1 -type f -name '*.java' -print0 | while IFS= read -r -d '' f; do
+            sed -i \
+              -e 's/net\.minecraft\.resources\.ResourceLocation/net.minecraft.resources.Identifier/g' \
+              -e 's/\bResourceLocation\b/Identifier/g' \
+              -e 's/net\.minecraft\.world\.entity\.MobSpawnType/net.minecraft.world.entity.EntitySpawnReason/g' \
+              -e 's/\bMobSpawnType\b/EntitySpawnReason/g' \
+              -e 's/net\.minecraft\.util\.FastColor/net.minecraft.util.ARGB/g' \
+              -e 's/\bFastColor\b/ARGB/g' "$f"
+          done
+
       - name: Build HZLib NeoForge
         working-directory: sources/common/hzlib-1.21.1
         env:
@@ -55,3 +68,14 @@ jobs:
         env:
           TARGET_LOADER: NeoForge
         run: ./gradlew build --stacktrace
+
+      - name: Upload NeoForge JARs
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lovely-reboot-neoforge-26.1.2
+          path: |
+            sources/common/hzlib-1.21.1/NeoForge/build/libs/*.jar
+            sources/common/lovelylib-1.21.1/NeoForge/build/libs/*.jar
+            sources/reboot/rlovelyr-1.21.1/NeoForge/build/libs/*.jar
+          if-no-files-found: error
