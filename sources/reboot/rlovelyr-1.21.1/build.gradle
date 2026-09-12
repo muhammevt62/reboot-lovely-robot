@@ -86,13 +86,21 @@ def runGradleBuild(File projectDir) {
         throw new GradleException("Gradle wrapper not found at: ${gradlew}")
     }
 
-    def process = new ProcessBuilder(gradlew.absolutePath, 'build')
+    def process = new ProcessBuilder(
+            gradlew.absolutePath,
+            'build',
+            '--stacktrace',
+            '--info',
+            '--console=plain'
+    )
             .directory(projectDir)
             .redirectErrorStream(true)
-            .inheritIO()
             .start()
 
+    def output = process.inputStream.getText('UTF-8')
     def exitCode = process.waitFor()
+    println output
+
     if (exitCode != 0) {
         throw new GradleException("Gradle build failed in ${projectDir} with exit code ${exitCode}")
     }
