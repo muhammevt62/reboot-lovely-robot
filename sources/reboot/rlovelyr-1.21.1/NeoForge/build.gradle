@@ -5,13 +5,11 @@ plugins {
 
 dependencies {
     implementation "net.neoforged:neoforge:${neoforge_version}"
-    
-    // GeckoLib for NeoForge (if needed)
+
     if (project.hasProperty('needs_geckolib') && needs_geckolib.toBoolean()) {
-        implementation "software.bernie.geckolib:${neoforge_geckolib}"
+        implementation "com.geckolib:${neoforge_geckolib}"
     }
-    
-    // Local library dependencies (NeoForge versions) - only if JARs exist
+
     if (project.hasProperty('depends_on_lovelylib') && depends_on_lovelylib.toBoolean()) {
         def lovelyLibBuildJar = rootProject.hasProperty('lovelylib_project_path')
                 ? new File(rootProject.file(rootProject.lovelylib_project_path), "NeoForge/build/libs/lovelylib-neoforge-${minecraft_version}-${lovelylib_version}.jar")
@@ -35,23 +33,20 @@ dependencies {
             logger.warn("HZLib NeoForge JAR not found. Run 'gradle refreshDependencies' first.")
         }
     }
-    
-
 }
 
 neoForge {
     version = neoforge_version
-    
+
     runs {
         client {
             client()
         }
-        
         server {
             server()
         }
     }
-    
+
     mods {
         "${mod_id}" {
             sourceSet sourceSets.main
@@ -93,25 +88,21 @@ publishing {
     publications {
         maven(MavenPublication) {
             from components.java
-            
             pom {
                 name = "${mod_name} NeoForge"
                 description = "${mod_description} - NeoForge implementation"
                 url = "${mod_homepage}"
-                
                 licenses {
                     license {
                         name = "${mod_license}"
                         url = "https://opensource.org/licenses/MIT"
                     }
                 }
-                
                 developers {
                     developer {
                         name = "${mod_authors}"
                     }
                 }
-                
                 scm {
                     url = "${mod_source}"
                 }
