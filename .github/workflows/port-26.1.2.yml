@@ -8,24 +8,19 @@ on:
 jobs:
   baseline-neoforge:
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: sources/reboot/rlovelyr-1.21.1
-
     steps:
       - uses: actions/checkout@v5
-
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
           cache: gradle
-
       - name: Make Gradle wrappers executable
         working-directory: .
         run: find sources -name gradlew -type f -exec chmod +x {} \;
-
       - name: Patch 26.1.2 vanilla API names
         working-directory: .
         run: |
@@ -44,64 +39,52 @@ jobs:
               -e 's/ARGB\.ARGB32\.color/ARGB.color/g' \
               -e 's/Ingredient\.EMPTY/Ingredient.of()/g' "$f"
           done
-
           python3 - <<'PY'
           from pathlib import Path
+          import re
           roots = [Path('sources/common/hzlib-1.21.1'), Path('sources/common/lovelylib-1.21.1'), Path('sources/reboot/rlovelyr-1.21.1')]
           for root in roots:
               for p in root.rglob('*.java'):
                   s = p.read_text()
-                  # 26.1 removed the typed CompoundTag contains overloads.
                   s = s.replace('contains(NBT_COOLDOWNS, Tag.TAG_LIST)', 'contains(NBT_COOLDOWNS)')
                   s = s.replace('contains(key, 10)', 'contains(key)')
                   s = s.replace('getList(NBT_COOLDOWNS, Tag.TAG_COMPOUND)', 'getList(NBT_COOLDOWNS).orElseGet(ListTag::new)')
-                  # NBT primitive getters now return Optional values.
-                  import re
                   s = re.sub(r'\.getInt\(([^\n(),]+)\)', r'.getInt(\1).orElse(0)', s)
                   s = re.sub(r'\.getLong\(([^\n(),]+)\)', r'.getLong(\1).orElse(0L)', s)
                   s = re.sub(r'\.getFloat\(([^\n(),]+)\)', r'.getFloat(\1).orElse(0.0F)', s)
                   s = re.sub(r'\.getBoolean\(([^\n(),]+)\)', r'.getBoolean(\1).orElse(false)', s)
                   s = re.sub(r'\.getString\(([^\n(),]+)\)', r'.getString(\1).orElse("")', s)
-                  # Compound/list accessors now return Optional.
                   s = re.sub(r'\.getCompound\(([^\n(),]+)\)', r'.getCompound(\1).orElseGet(CompoundTag::new)', s)
-                  s = re.sub(r'\.getCompound\(([^\n(),]+),\s*[^)]*\)', r'.getCompound(\1).orElseGet(CompoundTag::new)', s)
-                  s = re.sub(r'\.getCompound\((\w+)\)', r'.getCompound(\1).orElseGet(CompoundTag::new)', s)
-                  # UUID storage moved to the generic UUID codec helpers; keep old callers buildable.
-                  s = s.replace('tag.putUUID(key, value);', 'tag.store(key, UUIDUtil.CODEC, value);')
-                  s = s.replace('tag.hasUUID(key) ? tag.getUUID(key) : null', 'tag.read(key, UUIDUtil.CODEC).orElse(null)')
+                  s = s.replace('UUIDUtil.CODEC', 'net.minecraft.core.UUIDUtil.CODEC')
+                  s = s.replace('tag.putUUID(key, value);', 'tag.store(key, net.minecraft.core.UUIDUtil.CODEC, value);')
+                  s = s.replace('tag.hasUUID(key) ? tag.getUUID(key) : null', 'tag.read(key, net.minecraft.core.UUIDUtil.CODEC).orElse(null)')
                   p.write_text(s)
           PY
-
       - name: Build HZLib NeoForge
         working-directory: sources/common/hzlib-1.21.1
         env:
           TARGET_LOADER: NeoForge
         run: ./gradlew build --stacktrace
-
       - name: Stage HZLib for LovelyLib
         working-directory: .
         run: |
           mkdir -p sources/common/lovelylib-1.21.1/libs
           cp sources/common/hzlib-1.21.1/NeoForge/build/libs/hzlib-neoforge-26.1.2-1.0.0.jar sources/common/lovelylib-1.21.1/libs/
-
       - name: Build LovelyLib NeoForge
         working-directory: sources/common/lovelylib-1.21.1
         env:
           TARGET_LOADER: NeoForge
         run: ./gradlew build --stacktrace
-
       - name: Stage libraries for Lovely Reboot
         working-directory: .
         run: |
           mkdir -p sources/reboot/rlovelyr-1.21.1/libs
           cp sources/common/hzlib-1.21.1/NeoForge/build/libs/hzlib-neoforge-26.1.2-1.0.0.jar sources/reboot/rlovelyr-1.21.1/libs/
           cp sources/common/lovelylib-1.21.1/NeoForge/build/libs/lovelylib-neoforge-26.1.2-1.0.0.jar sources/reboot/rlovelyr-1.21.1/libs/
-
       - name: Build NeoForge baseline
         env:
           TARGET_LOADER: NeoForge
         run: ./gradlew build --stacktrace
-
       - name: Upload NeoForge JARs
         if: success()
         uses: actions/upload-artifact@v4
