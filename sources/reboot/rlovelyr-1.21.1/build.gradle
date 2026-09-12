@@ -95,7 +95,7 @@ task refreshDependencies {
             }
 
             println "Building LovelyLib..."
-            exec {
+            project.exec {
                 workingDir lovelyLibProject
                 commandLine './gradlew', 'build'
             }
@@ -123,7 +123,7 @@ task refreshDependencies {
             }
 
             println "Building HZLib..."
-            exec {
+            project.exec {
                 workingDir hzLibProject
                 commandLine './gradlew', 'build'
             }
