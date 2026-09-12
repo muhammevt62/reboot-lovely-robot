@@ -8,6 +8,7 @@ on:
 jobs:
   baseline-neoforge:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: sources/reboot/rlovelyr-1.21.1
@@ -21,12 +22,15 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      - name: Refresh local dependencies
-  env:
-    TARGET_LOADER: NeoForge
-  run: ./gradlew refreshDependencies --stacktrace
+      - name: Make Gradle executable
+        run: chmod +x gradlew
 
-- name: Build NeoForge baseline
-  env:
-    TARGET_LOADER: NeoForge
-  run: ./gradlew build --stacktrace
+      - name: Refresh local dependencies
+        env:
+          TARGET_LOADER: NeoForge
+        run: ./gradlew refreshDependencies --stacktrace
+
+      - name: Build NeoForge baseline
+        env:
+          TARGET_LOADER: NeoForge
+        run: ./gradlew build --stacktrace
