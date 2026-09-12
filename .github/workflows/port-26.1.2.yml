@@ -64,7 +64,19 @@ jobs:
         working-directory: sources/common/hzlib-1.21.1
         env:
           TARGET_LOADER: NeoForge
-        run: ./gradlew build --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew build --stacktrace --console=plain 2>&1 | tee /tmp/hzlib-build.log
+          status=${PIPESTATUS[0]}
+          echo "HZLIB_BUILD_STATUS=$status"
+          exit "$status"
+      - name: Upload HZLib diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hzlib-build-log
+          path: /tmp/hzlib-build.log
+          if-no-files-found: warn
       - name: Stage HZLib for LovelyLib
         working-directory: .
         run: |
