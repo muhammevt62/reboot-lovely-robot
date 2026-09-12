@@ -36,8 +36,41 @@ jobs:
               -e 's/net\.minecraft\.world\.entity\.MobSpawnType/net.minecraft.world.entity.EntitySpawnReason/g' \
               -e 's/\bMobSpawnType\b/EntitySpawnReason/g' \
               -e 's/net\.minecraft\.util\.FastColor/net.minecraft.util.ARGB/g' \
-              -e 's/\bFastColor\b/ARGB/g' "$f"
+              -e 's/\bFastColor\b/ARGB/g' \
+              -e 's/\.isClientSide\b/.isClientSide()/g' \
+              -e 's/\bgetOwnerUUID()\b/getOwnerReference().getUUID()/g' \
+              -e 's/\.getDayTime()/\.getGameTime()/g' \
+              -e 's/\.getType()\.is(\([^)]*\))/\.getType().builtInRegistryHolder().is(\1)/g' \
+              -e 's/ARGB\.ARGB32\.color/ARGB.color/g' \
+              -e 's/Ingredient\.EMPTY/Ingredient.of()/g' "$f"
           done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          roots = [Path('sources/common/hzlib-1.21.1'), Path('sources/common/lovelylib-1.21.1'), Path('sources/reboot/rlovelyr-1.21.1')]
+          for root in roots:
+              for p in root.rglob('*.java'):
+                  s = p.read_text()
+                  # 26.1 removed the typed CompoundTag contains overloads.
+                  s = s.replace('contains(NBT_COOLDOWNS, Tag.TAG_LIST)', 'contains(NBT_COOLDOWNS)')
+                  s = s.replace('contains(key, 10)', 'contains(key)')
+                  s = s.replace('getList(NBT_COOLDOWNS, Tag.TAG_COMPOUND)', 'getList(NBT_COOLDOWNS).orElseGet(ListTag::new)')
+                  # NBT primitive getters now return Optional values.
+                  import re
+                  s = re.sub(r'\.getInt\(([^\n(),]+)\)', r'.getInt(\1).orElse(0)', s)
+                  s = re.sub(r'\.getLong\(([^\n(),]+)\)', r'.getLong(\1).orElse(0L)', s)
+                  s = re.sub(r'\.getFloat\(([^\n(),]+)\)', r'.getFloat(\1).orElse(0.0F)', s)
+                  s = re.sub(r'\.getBoolean\(([^\n(),]+)\)', r'.getBoolean(\1).orElse(false)', s)
+                  s = re.sub(r'\.getString\(([^\n(),]+)\)', r'.getString(\1).orElse("")', s)
+                  # Compound/list accessors now return Optional.
+                  s = re.sub(r'\.getCompound\(([^\n(),]+)\)', r'.getCompound(\1).orElseGet(CompoundTag::new)', s)
+                  s = re.sub(r'\.getCompound\(([^\n(),]+),\s*[^)]*\)', r'.getCompound(\1).orElseGet(CompoundTag::new)', s)
+                  s = re.sub(r'\.getCompound\((\w+)\)', r'.getCompound(\1).orElseGet(CompoundTag::new)', s)
+                  # UUID storage moved to the generic UUID codec helpers; keep old callers buildable.
+                  s = s.replace('tag.putUUID(key, value);', 'tag.store(key, UUIDUtil.CODEC, value);')
+                  s = s.replace('tag.hasUUID(key) ? tag.getUUID(key) : null', 'tag.read(key, UUIDUtil.CODEC).orElse(null)')
+                  p.write_text(s)
+          PY
 
       - name: Build HZLib NeoForge
         working-directory: sources/common/hzlib-1.21.1
