@@ -99,12 +99,37 @@ def runGradleBuild(File projectDir) {
 }
 
 task refreshDependencies {
-    description = 'Copy latest LovelyLib and HZLib JARs from build output to local libs directory'
+    description = 'Build HZLib first, then LovelyLib, and copy both libraries into local libs directory'
     group = 'dependencies'
     
     doLast {
         def libsDir = file('libs')
         libsDir.mkdirs()
+
+        if (project.hasProperty('hzlib_project_path')) {
+            def hzLibProject = file(hzlib_project_path)
+            if (!hzLibProject.exists()) {
+                throw new GradleException("HZLib project not found at: ${hzlib_project_path}")
+            }
+
+            println "Building HZLib first..."
+            runGradleBuild(hzLibProject)
+
+            ['Common', 'Fabric', 'Forge', 'NeoForge'].each { loader ->
+                def buildDir = file("${hzlib_project_path}/${loader}/build/libs")
+                if (buildDir.exists()) {
+                    copy {
+                        from buildDir
+                        into libsDir
+                        include '*.jar'
+                        exclude '*-sources.jar'
+                        exclude '*-javadoc.jar'
+                        exclude '*-dev.jar'
+                    }
+                }
+            }
+            println "Copied HZLib JARs to libs/"
+        }
 
         if (project.hasProperty('lovelylib_project_path')) {
             def lovelyLibProject = file(lovelylib_project_path)
@@ -129,31 +154,6 @@ task refreshDependencies {
                 }
             }
             println "Copied LovelyLib JARs to libs/"
-        }
-
-        if (project.hasProperty('hzlib_project_path')) {
-            def hzLibProject = file(hzlib_project_path)
-            if (!hzLibProject.exists()) {
-                throw new GradleException("HZLib project not found at: ${hzlib_project_path}")
-            }
-
-            println "Building HZLib..."
-            runGradleBuild(hzLibProject)
-
-            ['Common', 'Fabric', 'Forge', 'NeoForge'].each { loader ->
-                def buildDir = file("${hzlib_project_path}/${loader}/build/libs")
-                if (buildDir.exists()) {
-                    copy {
-                        from buildDir
-                        into libsDir
-                        include '*.jar'
-                        exclude '*-sources.jar'
-                        exclude '*-javadoc.jar'
-                        exclude '*-dev.jar'
-                    }
-                }
-            }
-            println "Copied HZLib JARs to libs/"
         }
     }
 }
