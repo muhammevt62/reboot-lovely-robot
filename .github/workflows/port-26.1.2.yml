@@ -26,6 +26,11 @@ jobs:
         working-directory: .
         run: find sources -name gradlew -type f -exec chmod +x {} \;
 
+      - name: Build local dependencies
+        env:
+          TARGET_LOADER: NeoForge
+        run: ./gradlew refreshDependencies --stacktrace
+
       - name: Build NeoForge baseline
         env:
           TARGET_LOADER: NeoForge
